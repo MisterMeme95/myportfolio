@@ -10,7 +10,11 @@ app = Flask(__name__)
 
 if os.getenv("TESTING") == "true":
     print("Running in test mode")
-    mydb = SqliteDatabase('file:memory?mode=memory&cache=shared', uri=True)
+#    mydb = SqliteDatabase('file:memory?mode=memory&cache=shared', uri=True)
+    mydb = SqliteDatabase(":memory:", pragmas={
+        'journal_mode': 'wal',
+        'cache_size': -1024 * 64
+    })
 else:
     mydb = MySQLDatabase(os.getenv("MYSQL_DATABASE"),
         user=os.getenv("MYSQL_USER"),
@@ -35,11 +39,12 @@ mydb.create_tables([TimelinePost])
 
 @app.route('/')
 def index():
-return render_template('index.html', title="MLH Fellow", url=os.getenv("URL"))
+    return render_template('index.html', title="MLH Fellow", url=os.getenv("URL"))
+
 
 @app.route('/timeline')
 def timeline():
-    return rendertemplate('timeline.html', title="Timeline", url=os.getenv("URL"))
+    return render_template('timeline.html', title="Timeline", url=os.getenv("URL"))
 
 @app.route('/api/timeline_post', methods=['POST'])
 def post_time_line_post():

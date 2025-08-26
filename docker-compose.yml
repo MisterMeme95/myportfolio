@@ -1,27 +1,58 @@
-version: "3"
+version: "3.8"
+
 services:
   myportfolio:
     container_name: myportfolio
     build: .
-    restart: always
+    working_dir: /app
     env_file:
       - .env
     environment:
-      - FLASK_ENV=development
+      FLASK_APP: app
+      FLASK_ENV: development
+    volumes:
+      - .:/app
+    command: flask run --host=0.0.0.0 --port=5000
     ports:
       - "5000:5000"
-    volumes:
-      - .:/myportfolio
     depends_on:
       - mysql
 
   mysql:
     container_name: mysql
-    image: mariadb:bad-tag
+    image: mariadb:10.6
     restart: always
     env_file:
       - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mydb}
+      MYSQL_USER: ${MYSQL_USER:-myuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mypass}
     volumes:
       - mydatabase:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-hmysql", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpw}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  nginx:
+    container_name: nginx
+    image: jonasal/nginx-certbot
+    restart: always
+    environment:
+      - CERTBOT_EMAIL=jonathanmathurin6@gmail.com
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - nginx_secrets:/etc/letsencrypt
+      - ./user_conf.d:/etc/nginx/user_conf.d
+    depends_on:
+      - myportfolio
 volumes:
+  mydatabase: {}
+  nginx_secrets:
